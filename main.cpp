@@ -52,14 +52,97 @@ GLuint g_width = 1000, g_height = 1000;
 
 int divideDepth = 1;
 
+bool MOUSECLICK = false;
+
 // function declaration
 using namespace std;
+
+
+struct Mesh {
+	vector<Vec3f> vertices;
+	vector<Triangle> triangles;
+	vector<Vec3f> normals;
+};
+
+int getIndex(int row, int sector, int size) {
+	return (sector + row * size);
+}
+
+
+
+Mesh surfaceRev(vector<Vec3f> points, int sectors) {
+	Mesh m;
+	auto &v = m.vertices;
+	auto &t = m.triangles;
+
+	for (auto point : points) {
+		v.push_back(point);
+	}
+
+	for (int sector = 1; sector < sectors; sector++) {
+		//copy points and rotate by delta phi
+		auto &temp = v;
+
+
+		for (int row = 1; row < points.size(); row++) {
+			int a = getIndex(row, sector, points.size());
+			int b = getIndex(row, sector-1, points.size());
+			int c = getIndex(row+1, sector, points.size());
+			int d = getIndex(row+1, sector+1, points.size());
+
+			
+			Triangle triA;
+			triA.operator[](0) = points[a];
+			triA.operator[](1) = points[b];
+			triA.operator[](2) = points[d];
+
+			t.push_back(triA);
+
+			Triangle triB;
+			triA.operator[](0) = points[a];
+			triA.operator[](1) = points[d];
+			triA.operator[](2) = points[c];
+
+			t.push_back(triB);
+
+
+		}
+		
+	}
+
+	return m;
+}
 
 void setFrameBufferSize(GLFWwindow *window, int width, int height) {
 	g_width = width;
 	g_height = height;
-	glViewport(0, 0, g_width, g_height);
-	g_P = perspectiveProjection(30, float(g_width) / g_height, 0.01, 100.f);
+	//glViewport(0, 0, g_width, g_height);
+	//g_P = perspectiveProjection(30, float(g_width) / g_height, 0.01, 100.f);
+}
+
+void setMousePos(GLFWwindow *window, double xPos,double yPos) {
+	
+	//std::cout << xPos <<" "<<yPos << "\n";3
+}
+
+Vec2f pixelToNDC(double xPos, double yPos) {
+	Vec2f out;
+
+	out.x = xPos - 
+}
+
+void setMouseButton(GLFWwindow *window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
+
+		double xpos, ypos;
+
+		glfwGetCursorPos(window, &xpos, &ypos);
+
+		std::cout << "Click at:" << xpos << "," << ypos << endl;
+		
+	}
+
+	
 }
 
 void setKeyboard(GLFWwindow *window, int key, int scancode, int action,
@@ -122,6 +205,8 @@ void setKeyboard(GLFWwindow *window, int key, int scancode, int action,
 
 	else if (GLFW_KEY_J == key) {
 		divideDepth--;
+
+		
 	}
 }
 
@@ -255,6 +340,8 @@ GLFWwindow *initWindow() {
 	// setup callbacks
 	glfwSetFramebufferSizeCallback(window, setFrameBufferSize);
 	glfwSetKeyCallback(window, setKeyboard);
+	glfwSetCursorPosCallback(window, setMousePos);
+	glfwSetMouseButtonCallback(window, setMouseButton);
 
 	return window;
 }
@@ -288,14 +375,15 @@ int main() {
 	loadGeometryToGPU(controlPoints, vbo_control.id());
 	
 	//Load curve points
-	std::vector<Vec3f> outCurve = controlPoints;
+	std::vector<Vec3f> outCurve;
 
 	
-	std::cout << "inner loop";
+	outCurve = chaikinSubdiv(controlPoints);
 	outCurve = chaikinSubdiv(outCurve);
 
 
 	loadGeometryToGPU(outCurve, vbo_curve.id());
+
 
 	//outCurve = chaikinSubdiv(controlPoints);	//TODO - insert subdivision here	
 	
@@ -319,7 +407,6 @@ int main() {
 
 
 		
-			
 		glViewport(0, 0, g_width / 2, g_height);
 		//Draw curve
 		setUniformVec3f(basicShader.uniformLocation("color"), color_curve);
