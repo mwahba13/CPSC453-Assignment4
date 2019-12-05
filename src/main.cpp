@@ -24,7 +24,7 @@
 
 #include "common_matrices.hpp"
 //#include "obj_mesh_file_io.hpp"
-//#include "obj_mesh.hpp"
+#include "obj_mesh.hpp"
 #include "mat4f.hpp"
 #include "mat3f.hpp"
 #include "shader.hpp"
@@ -350,11 +350,13 @@ int main() {
 	Vec3f color_curve(0, 1, 1);
 	Vec3f color_control(1, 0, 0);
     Vec3f color_obj(1,1,0);
+    Vec3f lightPos (0,0,5);
 
 	//Set to one shader program 
 	opengl::Program *program = &basicShader;
 	glPointSize(10);
 	
+    assert(basicShader);
 	
 	while (!glfwWindowShouldClose(window)) {
 
@@ -364,6 +366,7 @@ int main() {
 		setUniformMat4f(program->uniformLocation("model"), g_M, true);
 		setUniformMat4f(program->uniformLocation("view"), g_V, true);
 		setUniformMat4f(program->uniformLocation("projection"), g_P, true);
+        setUniformVec3f(program->uniformLocation("lightPos"),lightPos);
 
 
 
@@ -388,6 +391,18 @@ int main() {
 		
 
         glViewport(g_width/2,0,g_width/2,g_height);
+
+        setUniformVec3f(basicShader.uniformLocation("color"), color_curve);
+        vao_curve.bind();
+        glDrawArrays(GL_POINTS,   // type of drawing (rendered to back buffer)
+            0,						  // offset into buffer
+            outCurve.size()	// number of vertices in buffer
+        );
+
+        glDrawArrays(GL_LINE_STRIP,   // type of drawing (rendered to back buffer)
+            0,						  // offset into buffer
+            outCurve.size()	// number of vertices in buffer
+        );
 		//Draw control points
 		setUniformVec3f(basicShader.uniformLocation("color"), color_control);
 		vao_control.bind();
