@@ -50,108 +50,14 @@ Mat4f g_P = Mat4f::identity();
 
 GLuint g_width = 1000, g_height = 1000;
 
-int divideDepth = 1;
-
-bool MOUSECLICK = false;
-
 // function declaration
 using namespace std;
-
-
-struct Mesh {
-	vector<Vec3f> vertices;
-	vector<Triangle> triangles;
-	vector<Vec3f> normals;
-};
-
-int getIndex(int row, int sector, int pointSize, int sectors) {
-	if (sector == sectors) {
-		return row;
-	}
-	else
-		return sector * pointSize + row;
-}
-
-
-
-OBJMesh surfaceRev(vector<Vec3f> points, int sectors) {
-	OBJMesh m;
-	auto &v = m.vertices;
-	auto &t = m.triangles;
-
-	
-
-	for (auto point : points) {
-		v.push_back(point);
-	}
-
-	for (int sector = 1; sector <= sectors; sector++) {
-		//copy points and rotate by delta phi
-		float deltaPhi = (360.f/sectors)*sector;
-		for (auto p : points) {
-			v.push_back(rotateAroundAxis(p, { 0,1,0 }, deltaPhi));
-		}
-
-		
-
-
-		for (int row = 0; row < points.size(); row++) {
-			geometry::Indices a;
-			a.vertexID() = getIndex(row, sector, points.size(), sectors);
-		
-			geometry::Indices b;
-			b.vertexID() = getIndex(row, sector-1, points.size(), sectors);
-
-			geometry::Indices c;
-			c.vertexID() = getIndex(row+1, sector, points.size(), sectors);
-
-			geometry::Indices d;
-			d.vertexID() = getIndex(row+1, sector+1, points.size(), sectors);
-
-			geometry::Triangle triA;
-
-
-
-			t.push_back({ a,b,d });
-			t.push_back({ a,d,c });
-			
-			
-			
-
-
-		}
-		
-	}
-
-	return m;
-}
 
 void setFrameBufferSize(GLFWwindow *window, int width, int height) {
 	g_width = width;
 	g_height = height;
-	//glViewport(0, 0, g_width, g_height);
-	//g_P = perspectiveProjection(30, float(g_width) / g_height, 0.01, 100.f);
-}
-
-void setMousePos(GLFWwindow *window, double xPos,double yPos) {
-	
-	//std::cout << xPos <<" "<<yPos << "\n";3
-}
-
-
-
-void setMouseButton(GLFWwindow *window, int button, int action, int mods) {
-	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
-
-		double xpos, ypos;
-
-		glfwGetCursorPos(window, &xpos, &ypos);
-
-		std::cout << "Click at:" << xpos << "," << ypos << endl;
-		
-	}
-
-	
+	glViewport(0, 0, g_width, g_height);
+	g_P = perspectiveProjection(30, float(g_width) / g_height, 0.01, 100.f);
 }
 
 void setKeyboard(GLFWwindow *window, int key, int scancode, int action,
@@ -205,18 +111,6 @@ void setKeyboard(GLFWwindow *window, int key, int scancode, int action,
 	else if (GLFW_KEY_ESCAPE == key) {
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	}
-
-	else if (GLFW_KEY_K == key) {
-		divideDepth ++;
-		
-		
-	}
-
-	else if (GLFW_KEY_J == key) {
-		divideDepth--;
-
-		
-	}
 }
 
 // user defined alias
@@ -264,29 +158,81 @@ std::vector<Vec3f> subdivideOpenCurve(std::vector<Vec3f> const & points, int dep
 	return out;
 }
 
-std::vector<Vec3f> chaikinSubdiv(std::vector<Vec3f> const &points) {
+std::vector<Vec3f> chaikinSubdiv(std::vector<Vec3f> const &points){
 
-	std::vector<Vec3f> out;
+        std::vector<Vec3f> out;
 
-	out.push_back(points[0]);
-	out.push_back(0.5* points[0] + 0.5*points[1]);
+        out.push_back(points[0]);
+        out.push_back(0.5*points[0] + 0.5*points[1]);
 
-	for (int i = 1; i < points.size() - 2; i++) {
-		/*Vec3f pA = points[i-1];
-		Vec3f pB = points[1];
+        for (int i = 1; i < points.size() - 2; i++){
+            out.push_back((0.75*points[i]) + (0.25*points[i+1]));
+            out.push_back((0.25*points[i]) + (0.75*points[i + 1]));
+        }
 
-		out.push_back(lerp(pA, pB, 0.25));
-		out.push_back(lerp(pA, pB, 0.75));*/
+        out.push_back((0.5*points[points.size()-2]) + (0.5*points[points.size()-1]));
+        out.push_back(points[points.size() - 1]);
 
-		out.push_back((0.75*points[i]) + (0.25*points[i + 1]));
-		out.push_back((0.25*points[i]) + (0.75*points[i + 1]));
-	}
+        return out;
 
-	out.push_back((0.5*points[points.size() - 2]) + (0.5*points[points.size() - 1]));
-	out.push_back(points[points.size() - 1]);
-
-	return out;
 }
+
+int getIndex (int row, int sector, int pointSize, int sectors){
+    if (sector == sectors){
+        return row;
+    }
+    else {
+        return sector*pointSize + row;
+    }
+}
+
+
+OBJMesh surfaceRev (vector<Vec3f> points, int sectors){
+
+    OBJMesh m;
+    auto &v = m.vertices;
+    auto &t = m.triangles;
+
+    for (auto point: points){
+        v.push_back(point);
+    }
+
+    for (int sector = 1; sector <= sectors; sector++){
+
+        float deltaPhi = (360.f/sectors)*sector;
+
+        for (auto p:points){
+            v.push_back(rotateAroundAxis(p,{0,1,0},deltaPhi));
+        }
+
+        for (int row = 0; row <points.size();row++){
+
+            geometry::Indices a;
+            a.vertexID() = getIndex(row,sector,points.size(),sectors);
+
+            geometry::Indices b;
+            b.vertexID() = getIndex(row, sector-1, points.size(), sectors);
+
+            geometry::Indices c;
+            c.vertexID() = getIndex(row+1, sector, points.size(), sectors);
+
+            geometry::Indices d;
+            d.vertexID() = getIndex(row+1, sector+1, points.size(), sectors);
+
+            geometry::Triangle triA;
+
+
+
+            t.push_back({ a,b,d });
+            t.push_back({ a,d,c });
+
+        }
+    }
+
+    return m;
+
+}
+
 
 void setupVAO(GLuint vaoID, GLuint vboID) {
 
@@ -349,8 +295,6 @@ GLFWwindow *initWindow() {
 	// setup callbacks
 	glfwSetFramebufferSizeCallback(window, setFrameBufferSize);
 	glfwSetKeyCallback(window, setKeyboard);
-	glfwSetCursorPosCallback(window, setMousePos);
-	glfwSetMouseButtonCallback(window, setMouseButton);
 
 	return window;
 }
@@ -360,15 +304,13 @@ int main() {
 
 	auto vao_control = makeVertexArrayObject();
 	auto vbo_control = makeBufferObject();
-
 	auto vao_curve = makeVertexArrayObject();
 	auto vbo_curve = makeBufferObject();
 
-	auto vao_obj = makeVertexArrayObject();
-	auto ibo_obj = makeBufferObject();
-	auto vbo_obj = makeBufferObject();
-	GLuint totalIndices = 0;
-
+    auto vao_obj = makeVertexArrayObject();
+    auto ibo_obj = makeBufferObject();
+    auto vbo_obj = makeBufferObject();
+    GLuint totalIndices = 0;
 
 	Vec3f viewPosition(0, 0, 3);
 	g_V = lookAtMatrix(viewPosition,    // eye position
@@ -377,40 +319,37 @@ int main() {
 	);
 	g_P = orthographicProjection(-1, 1, 1, -1, 0.001f, 10);
 
-	auto basicShader = createShaderProgram("../shaders/basic_vs.glsl",
-		"../shaders/basic_fs.glsl");
+    auto basicShader = createShaderProgram("./shaders/basic_vs.glsl",
+        "./shaders/basic_fs.glsl");
 	setupVAO(vao_control.id(), vbo_control.id());
 	setupVAO(vao_curve.id(), vbo_curve.id());
-	setupVAO(vao_obj.id(), vbo_obj.id());
+    setupVAO(vao_obj.id(),vbo_obj.id());
 
 	//Load control points
 	std::vector<Vec3f> controlPoints;
 	controlPoints.push_back({ 0,0.5,0 });
 	controlPoints.push_back({ 0.5,0,0 });
 	controlPoints.push_back({ 0,-0.5,0 });
-	controlPoints.push_back({ -0.5,0,0 });
+    controlPoints.push_back({ -0.5,0,0 });
 	loadGeometryToGPU(controlPoints, vbo_control.id());
 	
 	//Load curve points
 	std::vector<Vec3f> outCurve;
-
-	
-	outCurve = chaikinSubdiv(controlPoints);
-	//outCurve = chaikinSubdiv(outCurve);
-
+    outCurve = controlPoints;	//TODO - insert subdivision here
+    outCurve = chaikinSubdiv(outCurve);
+    outCurve = chaikinSubdiv(outCurve);
 
 	loadGeometryToGPU(outCurve, vbo_curve.id());
 
-	OBJMesh meshData = surfaceRev(controlPoints,20);
-	auto meshNormals = geometry::calculateVertexNormals
-	(meshData.triangles, meshData.vertices);
+    OBJMesh meshData = surfaceRev(outCurve,360);
+    auto meshNormals = geometry::calculateVertexNormals(meshData.triangles,meshData.vertices);
+    auto vboData = opengl::makeConsistentVertexNormalIndices(meshData,meshNormals);
+    totalIndices = opengl::setup_vao_and_buffers(vao_obj,ibo_obj,vbo_obj,vboData);
 
-	auto vboData = opengl::makeConsistentVertexNormalIndices(meshData,meshNormals);
-	totalIndices = opengl::setup_vao_and_buffers(vao_obj, ibo_obj, vbo_obj, vboData);
-	
 		
 	Vec3f color_curve(0, 1, 1);
 	Vec3f color_control(1, 0, 0);
+    Vec3f color_obj(1,1,0);
 
 	//Set to one shader program 
 	opengl::Program *program = &basicShader;
@@ -427,9 +366,10 @@ int main() {
 		setUniformMat4f(program->uniformLocation("projection"), g_P, true);
 
 
-		
-		glViewport(0, 0, g_width / 2, g_height);
-		//Draw curve
+
+        glViewport(0,0,g_width/2,g_height);
+        //Draw curve
+        /*
 		setUniformVec3f(basicShader.uniformLocation("color"), color_curve);
 		vao_curve.bind();
 		glDrawArrays(GL_POINTS,   // type of drawing (rendered to back buffer)
@@ -441,11 +381,14 @@ int main() {
 			0,						  // offset into buffer
 			outCurve.size()	// number of vertices in buffer
 		);
-
-
+        */
+        setUniformVec3f(basicShader.uniformLocation("color"),color_obj);
+        vao_obj.bind();
+        glad_glDrawElements(GL_TRIANGLES,totalIndices,GL_UNSIGNED_INT,(void*)0);
 		
+
+        glViewport(g_width/2,0,g_width/2,g_height);
 		//Draw control points
-		glViewport(g_width / 2, 0, g_width / 2, g_height);
 		setUniformVec3f(basicShader.uniformLocation("color"), color_control);
 		vao_control.bind();
 		glDrawArrays(GL_LINE_STRIP,   // type of drawing (rendered to back buffer)
