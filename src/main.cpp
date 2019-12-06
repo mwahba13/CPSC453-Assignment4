@@ -319,8 +319,15 @@ int main() {
 	);
 	g_P = orthographicProjection(-1, 1, 1, -1, 0.001f, 10);
 
+	
     auto basicShader = createShaderProgram("./shaders/basic_vs.glsl",
         "./shaders/basic_fs.glsl");
+	auto phongShader = createShaderProgram("../shaders/phong_vs.glsl",
+		"../shaders/phong_fs.glsl");
+
+
+	assert(phongShader && basicShader);
+
 	setupVAO(vao_control.id(), vbo_control.id());
 	setupVAO(vao_curve.id(), vbo_curve.id());
     setupVAO(vao_obj.id(),vbo_obj.id());
@@ -349,49 +356,47 @@ int main() {
 		
 	Vec3f color_curve(0, 1, 1);
 	Vec3f color_control(1, 0, 0);
-    Vec3f color_obj(1,1,0);
-    Vec3f lightPos (0,0,5);
+    
+    Vec3f lightPos (0,1,0);
 
 	//Set to one shader program 
-	opengl::Program *program = &basicShader;
+	
 	glPointSize(10);
 	
-    assert(basicShader);
+	std::cout << "flag"<<endl;
 	
 	while (!glfwWindowShouldClose(window)) {
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		opengl::Program *program = &phongShader;
 		program->use();				
 		setUniformMat4f(program->uniformLocation("model"), g_M, true);
 		setUniformMat4f(program->uniformLocation("view"), g_V, true);
 		setUniformMat4f(program->uniformLocation("projection"), g_P, true);
-        setUniformVec3f(program->uniformLocation("lightPos"),lightPos);
+
+
+		setUniformVec3f(phongShader.uniformLocation("lightPos"), lightPos);
+		setUniformVec3f(phongShader.uniformLocation("viewPos"), viewPosition);
+		//setUniformVec3f(phongShader.uniformLocation("lightColor"), Vec3f(1,1,1));
+		setUniformVec3f(phongShader.uniformLocation("objectColor"), Vec3f(0.6,0.3,0));
 
 
 
         glViewport(0,0,g_width/2,g_height);
-        //Draw curve
-        /*
-		setUniformVec3f(basicShader.uniformLocation("color"), color_curve);
-		vao_curve.bind();
-		glDrawArrays(GL_POINTS,   // type of drawing (rendered to back buffer)
-			0,						  // offset into buffer
-			outCurve.size()	// number of vertices in buffer
-		);
-
-		glDrawArrays(GL_LINE_STRIP,   // type of drawing (rendered to back buffer)
-			0,						  // offset into buffer
-			outCurve.size()	// number of vertices in buffer
-		);
-        */
-        setUniformVec3f(basicShader.uniformLocation("color"),color_obj);
+		
         vao_obj.bind();
-        glad_glDrawElements(GL_TRIANGLES,totalIndices,GL_UNSIGNED_INT,(void*)0);
+		glDrawElements(GL_TRIANGLES, totalIndices, GL_UNSIGNED_INT, (void*)0);
 		
 
-        glViewport(g_width/2,0,g_width/2,g_height);
 
+		program = &basicShader;
+		program->use();
+		setUniformMat4f(program->uniformLocation("model"), g_M, true);
+		setUniformMat4f(program->uniformLocation("view"), g_V, true);
+		setUniformMat4f(program->uniformLocation("projection"), g_P, true);
+
+        glViewport(g_width/2,0,g_width/2,g_height);
         setUniformVec3f(basicShader.uniformLocation("color"), color_curve);
         vao_curve.bind();
         glDrawArrays(GL_POINTS,   // type of drawing (rendered to back buffer)
