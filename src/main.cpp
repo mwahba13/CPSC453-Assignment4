@@ -48,6 +48,7 @@ Mat4f g_M = Mat4f::identity();
 Mat4f g_V = Mat4f::identity();
 Mat4f g_P = Mat4f::identity();
 
+
 GLuint g_width = 1000, g_height = 1000;
 
 // function declaration
@@ -58,6 +59,7 @@ void setFrameBufferSize(GLFWwindow *window, int width, int height) {
 	g_height = height;
 	glViewport(0, 0, g_width, g_height);
 	g_P = perspectiveProjection(30, float(g_width) / g_height, 0.01, 100.f);
+
 }
 
 void setKeyboard(GLFWwindow *window, int key, int scancode, int action,
@@ -112,6 +114,31 @@ void setKeyboard(GLFWwindow *window, int key, int scancode, int action,
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
 	}
 }
+Vec2f pixelToNDC(double xpos, double ypos){
+    Vec2f out;
+
+    float viewportSplit = g_width/2;
+
+    out.x = (((2.0*xpos)-(2.0*viewportSplit))/g_width)-1;
+    out.y = -((((2.0*ypos)-(2.0*0))/g_height)-1);
+
+    return out;
+}
+
+void setMouseButton(GLFWwindow *window, int button, int action, int mods){
+
+    if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS){
+        double xpos,ypos;
+
+        glfwGetCursorPos(window,&xpos,&ypos);
+
+        Vec2f NDC = pixelToNDC(xpos,ypos);
+        std::cout<<"Click: "<<xpos<<","<<ypos<<endl;
+        std::cout<<"NDC: "<<NDC.x<<","<<NDC.y<<endl;
+    }
+}
+
+
 
 // user defined alias
 opengl::Program createShaderProgram(std::string const &vertexShaderFile,
@@ -289,12 +316,13 @@ GLFWwindow *initWindow() {
 	// glCullFace(GL_BACK);
 
 	//Polygon fill mode
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	// setup callbacks
 	glfwSetFramebufferSizeCallback(window, setFrameBufferSize);
 	glfwSetKeyCallback(window, setKeyboard);
+    glfwSetMouseButtonCallback(window,setMouseButton);
 
 	return window;
 }
@@ -322,11 +350,11 @@ int main() {
 	
     auto basicShader = createShaderProgram("./shaders/basic_vs.glsl",
         "./shaders/basic_fs.glsl");
-	auto phongShader = createShaderProgram("../shaders/phong_vs.glsl",
-		"../shaders/phong_fs.glsl");
+    auto phongShader = createShaderProgram("./shaders/phong_vs.glsl",
+        "./shaders/phong_fs.glsl");
 
 
-	assert(phongShader && basicShader);
+    assert(basicShader && phongShader);
 
 	setupVAO(vao_control.id(), vbo_control.id());
 	setupVAO(vao_curve.id(), vbo_curve.id());
@@ -335,9 +363,9 @@ int main() {
 	//Load control points
 	std::vector<Vec3f> controlPoints;
 	controlPoints.push_back({ 0,0.5,0 });
-	controlPoints.push_back({ 0.5,0,0 });
-	controlPoints.push_back({ 0,-0.5,0 });
-    controlPoints.push_back({ -0.5,0,0 });
+    controlPoints.push_back({ 1,0,0 });
+    controlPoints.push_back({ 1,-0.5,0 });
+    controlPoints.push_back({ 0,-1,0 });
 	loadGeometryToGPU(controlPoints, vbo_control.id());
 	
 	//Load curve points
@@ -348,7 +376,7 @@ int main() {
 
 	loadGeometryToGPU(outCurve, vbo_curve.id());
 
-    OBJMesh meshData = surfaceRev(outCurve,360);
+    OBJMesh meshData = surfaceRev(outCurve,30);
     auto meshNormals = geometry::calculateVertexNormals(meshData.triangles,meshData.vertices);
     auto vboData = opengl::makeConsistentVertexNormalIndices(meshData,meshNormals);
     totalIndices = opengl::setup_vao_and_buffers(vao_obj,ibo_obj,vbo_obj,vboData);
@@ -363,39 +391,43 @@ int main() {
 	
 	glPointSize(10);
 	
-	std::cout << "flag"<<endl;
+
 	
 	while (!glfwWindowShouldClose(window)) {
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		opengl::Program *program = &phongShader;
-		program->use();				
-		setUniformMat4f(program->uniformLocation("model"), g_M, true);
-		setUniformMat4f(program->uniformLocation("view"), g_V, true);
-		setUniformMat4f(program->uniformLocation("projection"), g_P, true);
+
+        opengl::Program *phongProgram = &phongShader;
+
+        phongProgram->use();
+        vao_obj.bind();
+        setUniformMat4f(phongProgram->uniformLocation("model"), g_M, true);
+        setUniformMat4f(phongProgram->uniformLocation("view"), g_V, true);
+        setUniformMat4f(phongProgram->uniformLocation("projection"), g_P, true);
 
 
-		setUniformVec3f(phongShader.uniformLocation("lightPos"), lightPos);
-		setUniformVec3f(phongShader.uniformLocation("viewPos"), viewPosition);
-		//setUniformVec3f(phongShader.uniformLocation("lightColor"), Vec3f(1,1,1));
-		setUniformVec3f(phongShader.uniformLocation("objectColor"), Vec3f(0.6,0.3,0));
+
+
+        //setUniformVec3f(phongProgram->uniformLocation("lightPosition"),lightPos);
+        //setUniformVec3f(phongShader.uniformLocation("lightPos"), lightPos);
+        //setUniformVec3f(phongShader.uniformLocation("viewPos"), viewPosition);
+        //setUniformVec3f(phongShader.uniformLocation("objectColor"), Vec3f(0.6,0.3,0));
 
 
 
         glViewport(0,0,g_width/2,g_height);
 		
-        vao_obj.bind();
+
+
 		glDrawElements(GL_TRIANGLES, totalIndices, GL_UNSIGNED_INT, (void*)0);
 		
 
 
-		program = &basicShader;
-		program->use();
-		setUniformMat4f(program->uniformLocation("model"), g_M, true);
-		setUniformMat4f(program->uniformLocation("view"), g_V, true);
-		setUniformMat4f(program->uniformLocation("projection"), g_P, true);
-
+        opengl::Program *program = &basicShader;
+        program->use();
+        setUniformMat4f(program->uniformLocation("model"), g_M, true);
+        setUniformMat4f(program->uniformLocation("view"), g_V, true);
+        setUniformMat4f(program->uniformLocation("projection"), g_P, true);
         glViewport(g_width/2,0,g_width/2,g_height);
         setUniformVec3f(basicShader.uniformLocation("color"), color_curve);
         vao_curve.bind();

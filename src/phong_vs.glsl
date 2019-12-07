@@ -1,36 +1,27 @@
 #version 330 core
 layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 aNormal;
-uniform vec3 viewPos;
-uniform vec3 lightPos;
+layout (location = 1) in vec3 normal;
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
-
-
-out vec3 lighting;
-out vec3 Normal;
+out vec3 lightColor;
 
 void main()
 {
-
-
-
-    vec3 lightColor = vec3(1,1,1);
     gl_Position = projection * view * model * vec4(position, 1.0);
-
-    float ambientStrength = 0.4;
-    vec3 ambient = ambientStrength * lightColor;
 
 
 
     vec3 Position = vec3(model * vec4(position,1.0));
+    vec3 Normal = mat3(transpose(inverse(model))) * normal;
 
-    vec3 Normal = aNormal;
-
-
+    float ambientStrength = 0.1;
+    vec3 ambient = ambientStrength * lightColor;
 
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(lightPos - Position);
@@ -43,12 +34,12 @@ void main()
     float spec = pow(max(dot(viewDir,reflectDir),0.0),32);
     vec3 specular = specularStrength * spec * lightColor;
 
+    //lightColor = vec3(1,0,0);
+    lightColor = ambient+diffuse+specular;
 
 
 
 
-
-    lighting = ambient;
 
 }
 
