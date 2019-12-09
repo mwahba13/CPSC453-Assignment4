@@ -97,6 +97,7 @@ makeConsistentVertexNormalIndices(geometry::OBJMesh const &mesh) {
         unsigned int id = verticesOut.size();
 
         indicesOut.push_back(id); // new id
+		
         verticesOut.push_back(mesh.vertices[index.vertexID()]);
         normalsOut.push_back(mesh.normals[index.normalID()]);
 
